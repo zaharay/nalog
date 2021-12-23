@@ -1,4 +1,5 @@
-# egrip (ЕГРИП)
+# Проверка и загрузка обновлений справочников ЕГРЮЛ и ЕГРИП
+### Parsing HTML, SSL
  * Fastest Way to Load Data Into PostgreSQL Using Python (https://hakibenita.com/fast-load-data-python-postgresql)
  * Recursive XML parsing python using ElementTree (https://stackoverflow.com/questions/28194703/recursive-xml-parsing-python-using-elementtree)
  1. SSLError "bad handshake: Error([('SSL routines', 'tls_process_server_certificate', 'certificate verify failed')],)
