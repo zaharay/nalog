@@ -38,68 +38,81 @@ def main():
         # Получаю директорию с последним обновлением:
         egrip_last_dir_url = egrip_parser.get_last_item(config[config_section]['url'])
         if egrip_last_dir_url == -1:
-            exit(-1)
-    except Exception as ex:
-        logger.exception(f'Error getting the address of the last directory "{config_section}": {ex}')
-        # print(f'Error getting the address of the last directory "{config_section}": {ex}')
-        return -1
+            raise Exception()
 
+        # Получаю дату из URL-адреса директории последнего обновления:
+        egrip_str_date = str_date_from_url(egrip_last_dir_url)
+        if egrip_str_date == -1:
+            raise Exception()
 
-    egrip_str_date = str_date_from_url(egrip_last_dir_url)
-    if egrip_str_date == -1:
-        return -1
-    # проверка даты последнего обновления:
-    config_last_date = date_from_str(config[config_section]['last_date'])
-    current_date = date_from_str(egrip_str_date)
-    print(config_last_date, current_date)
-    if config_last_date == -1 or current_date == -1:
-        return -1
-    if config_last_date < current_date:
-        # требуется загрузка файлов обновлений:
-        dnld_dir = os.path.normpath(
-            config[config_section]['zip_dir'])  # папка на локальном диске для загрузки ZIP-файлов
-        # dnld_dir = os.path.abspath(os.getcwd())
-        egrip_parser.get_zip_files(egrip_last_dir_url, dnld_dir)  # текущая директория
-        # egrip_parser.get_zip_files('https://ftp.egrul.nalog.ru/?dir=EGRIP_405/01.01.2021_FULL', dnld_dir)  # проверка
+        # Проверка даты последнего обновления:
+        config_last_date = date_from_str(config[config_section]['last_date'])
+        current_date = date_from_str(egrip_str_date)
+        if (config_last_date == -1) or (current_date == -1):
+            raise Exception()
 
-        # обновляю дату последнего релиза в файле конфигурации:
-        config.set(config_section, 'last_date', egrip_str_date)
-        with open('config.ini', 'w') as config_file:
-            config.write(config_file)
-    else:
-        print('This date is already fixed in the configuration file. No download is required.')
+        if config_last_date < current_date:  # требуется загрузка файлов обновлений:
+
+            dnld_dir = os.path.normpath(
+                config[config_section]['zip_dir'])  # папка на локальном диске для загрузки ZIP-файлов
+            # dnld_dir = os.path.abspath(os.getcwd())
+
+            egrip_parser.get_zip_files(egrip_last_dir_url, dnld_dir)  # текущая директория
+            # egrip_parser.get_zip_files('https://ftp.egrul.nalog.ru/?dir=EGRIP_405/01.01.2021_FULL', dnld_dir)  # проверка
+
+            # обновляю дату последнего релиза в файле конфигурации:
+            config.set(config_section, 'last_date', egrip_str_date)
+            with open('config.ini', 'w') as config_file:
+                config.write(config_file)
+        else:
+            print('This date is already fixed in the configuration file. No download is required.')
+
+    except Exception:
+        logger.exception(f'Shutdown as a result of an error in the section: "{config_section}"')
 
     # Парсим ЕГРЮЛ:
     # =================================================================================================================
     config_section = 'egrul'
-    egrip_parser = HTMLParser(
+    egrul_parser = HTMLParser(
         config[config_section]['p12_file'],
         config[config_section]['pwd']
     )
+
     try:
         # Получаю директорию с последним обновлением:
-        egrip_last_dir_url = egrip_parser.get_last_item(config[config_section]['url'])
-        if egrip_last_dir_url == -1:
-            exit(-1)
-    except Exception as ex:
-        print(f'Error getting the address of the last directory "{config_section}": {ex}')
+        egrul_last_dir_url = egrul_parser.get_last_item(config[config_section]['url'])
+        if egrul_last_dir_url == -1:
+            raise Exception()
 
-    egrip_str_date = str_date_from_url(egrip_last_dir_url)
-    # проверка даты последнего обновления:
-    if date_from_str(config[config_section]['last_date']) < date_from_str(egrip_str_date):
-        # требуется загрузка файлов обновлений:
-        dnld_dir = os.path.normpath(
-            config[config_section]['zip_dir'])  # папка на локальном диске для загрузки ZIP-файлов
-        # dnld_dir = os.path.abspath(os.getcwd())
-        egrip_parser.get_zip_files(egrip_last_dir_url, dnld_dir)  # текущая директория
-        # egrip_parser.get_zip_files('https://ftp.egrul.nalog.ru/?dir=EGRIP_405/17.12.2020')
+        # Получаю дату из URL-адреса директории последнего обновления:
+        egrul_str_date = str_date_from_url(egrul_last_dir_url)
+        if egrip_str_date == -1:
+            raise Exception()
 
-        # обновляю дату последнего релиза в файле конфигурации:
-        config.set(config_section, 'last_date', egrip_str_date)
-        with open('config.ini', 'w') as config_file:
-            config.write(config_file)
-    else:
-        print('This date is already fixed in the configuration file. No download is required.')
+        # Проверка даты последнего обновления:
+        config_last_date = date_from_str(config[config_section]['last_date'])
+        current_date = date_from_str(egrul_str_date)
+        if (config_last_date == -1) or (current_date == -1):
+            raise Exception()
+
+        if config_last_date < current_date:  # требуется загрузка файлов обновлений:
+
+            dnld_dir = os.path.normpath(
+                config[config_section]['zip_dir'])  # папка на локальном диске для загрузки ZIP-файлов
+            # dnld_dir = os.path.abspath(os.getcwd())
+
+            egrul_parser.get_zip_files(egrul_last_dir_url, dnld_dir)  # текущая директория
+            # egrip_parser.get_zip_files('https://ftp.egrul.nalog.ru/?dir=EGRIP_405/01.01.2021_FULL', dnld_dir)  # проверка
+
+            # обновляю дату последнего релиза в файле конфигурации:
+            config.set(config_section, 'last_date', egrul_str_date)
+            with open('config.ini', 'w') as config_file:
+                config.write(config_file)
+        else:
+            print('This date is already fixed in the configuration file. No download is required.')
+
+    except Exception:
+        logger.exception(f'Shutdown as a result of an error in the section: "{config_section}"')
 
     # =================================================================================================================
     return 0

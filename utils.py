@@ -26,7 +26,7 @@ def str_date_from_url(url):  # строка с датой из URL
     try:
         return re.search('^[0-9.]+', url.strip().rsplit('/', 1)[-1])[0]  # только цифры и точка после последнего '/'
     except Exception as ex:
-        logger.exception(f'Date extraction error from URL: {ex}')
+        logger.exception(f'Date extraction from URL error: {ex}')
         return -1
 
 def get_timedelta(str_start, str_stop):

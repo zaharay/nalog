@@ -4,6 +4,9 @@ import re
 from bs4 import BeautifulSoup
 from requests import Request, Session
 from requests_pkcs12 import Pkcs12Adapter
+import logging.config
+
+logger = logging.getLogger('app_logger')
 
 
 class HTMLParser:
@@ -34,36 +37,49 @@ class HTMLParser:
                 raise Exception('Unit not recognized!')
             return num
         except Exception as ex:
-            print(f'Error getting the file size: {ex}')
-            exit(-1)
+            # print(f'Error getting the file size: {ex}')
+            logger.exception(f'Error getting the file size: {ex}')
+            return -1
 
     def get_html(self, url, stream=True):  # получаю ответ по URL
         with Session() as session:
-            session.mount(
-                url,
-                Pkcs12Adapter(
-                    pkcs12_filename=self.p12_file,
-                    pkcs12_password=self.p12_pwd
+            try:
+                session.mount(
+                    url,
+                    Pkcs12Adapter(
+                        pkcs12_filename=self.p12_file,
+                        pkcs12_password=self.p12_pwd
+                    )
                 )
-            )
+            except Exception as ex:
+                logger.exception(f'Session opening error!')
+                return -1
             resp = session.post(url, verify=False, stream=stream)
             if resp.ok:
-                print(f'Response from {url} ОК!')
+                # print(f'Response from {url} ОК!')
                 return resp
-            print('Response from {url}:', resp.status_code)
+            logger.exception(f'Response from {url}: {resp.status_code}')
+            return -1
 
     def get_last_item(self, url):  # получаю атрибуты (дату, ссылку) последней записи в списке
         soup = BeautifulSoup(self.get_html(url).text, 'lxml')
-        if soup.find('div', class_='alert alert-danger'):
-            print('Ошибка при обращении к списку каталогов:', soup.find('div', class_='alert alert-danger').text.strip())
+        if soup == -1 or soup.find('div', class_='alert alert-danger'):
+            # print('Error accessing the directory list:', soup.find('div', class_='alert alert-danger').text.strip())
+            logger.exception(f'Error accessing the directory list: '
+                             f'{soup.find("div", class_="alert alert-danger").text.strip()}')
             return -1
-        ul_tag = soup.find('ul', class_='nav nav-pills nav-stacked')  # unordered list
-        last_li_a = ul_tag.find_all('li')[-1].find('a')  # последняя запись в списке
-
-        return self._base_url(url) + str(last_li_a.get('href')).strip()
+        try:
+            ul_tag = soup.find('ul', class_='nav nav-pills nav-stacked')  # unordered list
+            last_li_a = ul_tag.find_all('li')[-1].find('a')  # последняя запись в списке
+            return self._base_url(url) + str(last_li_a.get('href')).strip()
+        except Exception as ex:
+            logger.exception(f'Error getting the address of the last directory')
+            return -1
 
     def download_by_url(self, url, file_path, file_size, chunk_size=1024):  # chunk_size=128
         resp = self.get_html(url)  # stream=True
+        if resp == -1:
+            return -1
         dl, scale = 0, 2  # уже скачано, коэффициент сжатия статус-бара
         if resp.ok:
             with open(file_path, 'wb') as file:
@@ -73,23 +89,33 @@ class HTMLParser:
                     done = int((100 / scale) * dl / file_size)  # % скачанного
                     sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (int(100 / scale) - done)))
                     sys.stdout.flush()
-            print(f'\nFile "{os.path.basename(file.name)}" download completed!')
+            # print(f'\nFile "{os.path.basename(file.name)}" download completed!')
+            logger.info(f'\nFile "{os.path.basename(file.name)}" download completed!')
             return 0
-        print(f'Error in response from "{url}":', resp.status_code)
-        exit(-1)
+        logger.exception(f'Error in response from "{url}":', resp.status_code)
+        # print(f'Error in response from "{url}":', resp.status_code)
+        return -1
 
     def get_zip_files(self, url, dnld_dir=''):  # получение ссылок на ZIP-архивы
         soup = BeautifulSoup(self.get_html(url).text, 'lxml')
-        ul_tag = soup.find('ul', class_='nav nav-pills nav-stacked')  # unordered list
-        num_files = 0
-        for li_tag in ul_tag.find_all('li'):  # по всем list item (может быть несколько zip-файлов)
-            if str(li_tag.get('data-name')).find('.zip') > 0:  # только записи с файлами
-                url = self._base_url(url) + str(li_tag.find('a').get('href'))
-                size_in_bytes = self._get_file_size(li_tag)
-                self.download_by_url(
-                    url=url,
-                    file_path=os.path.join(dnld_dir, url.strip().rsplit('/', 1)[-1]),
-                    file_size=size_in_bytes
-                    )
-                num_files += 1
-        print(f'Download of {num_files} file{"s" if num_files > 1 else ""} is completed!')
+        if soup == -1:
+            return -1
+        try:
+            ul_tag = soup.find('ul', class_='nav nav-pills nav-stacked')  # unordered list
+            num_files = 0
+            for li_tag in ul_tag.find_all('li'):  # по всем list item (может быть несколько zip-файлов)
+                if str(li_tag.get('data-name')).find('.zip') > 0:  # только записи с файлами
+                    url = self._base_url(url) + str(li_tag.find('a').get('href'))
+                    size_in_bytes = self._get_file_size(li_tag)
+                    res = self.download_by_url(
+                            url=url,
+                            file_path=os.path.join(dnld_dir, url.strip().rsplit('/', 1)[-1]),
+                            file_size=size_in_bytes
+                            )
+                    if res == -1:
+                        return -1
+                    num_files += 1
+            logger.info(f'Download of {num_files} file{"s" if num_files > 1 else ""} is completed!')
+        except Exception as ex:
+            logger.exception(f'Error getting links to ZIP archives')
+            return -1
