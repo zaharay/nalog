@@ -30,11 +30,14 @@ def main():
     # Парсим ЕГРИП:
     # =================================================================================================================
     config_section = 'egrip'
-    egrip_parser = HTMLParser(
-        config[config_section]['p12_file'],
-        config[config_section]['pwd']
-    )
+    logger.info(f'{"_" * 5}Starting processing of section: "{config_section}"{"_" * 5}')
     try:
+        # Экземпляр парсера ЕГРИП:
+        egrip_parser = HTMLParser(
+            config[config_section]['p12_file'],
+            config[config_section]['pwd']
+        )
+
         # Получаю директорию с последним обновлением:
         egrip_last_dir_url = egrip_parser.get_last_item(config[config_section]['url'])
         if egrip_last_dir_url == -1:
@@ -65,20 +68,27 @@ def main():
             with open('config.ini', 'w') as config_file:
                 config.write(config_file)
         else:
-            print('This date is already fixed in the configuration file. No download is required.')
+            logger.info(f'This date is already fixed in the configuration file. No download is required.')
+            # print('This date is already fixed in the configuration file. No download is required.')
+
+        del egrip_parser
 
     except Exception:
         logger.exception(f'Shutdown as a result of an error in the section: "{config_section}"')
 
+    logger.info(f'{"_" * 5}Section processing completed{"_" * 5}')
+
     # Парсим ЕГРЮЛ:
     # =================================================================================================================
     config_section = 'egrul'
-    egrul_parser = HTMLParser(
-        config[config_section]['p12_file'],
-        config[config_section]['pwd']
-    )
-
+    logger.info(f'{"_" * 5}Starting processing of section: "{config_section}"{"_" * 5}')
     try:
+        # Экземпляр парсера ЕГРЮЛ:
+        egrul_parser = HTMLParser(
+            config[config_section]['p12_file'],
+            config[config_section]['pwd']
+        )
+
         # Получаю директорию с последним обновлением:
         egrul_last_dir_url = egrul_parser.get_last_item(config[config_section]['url'])
         if egrul_last_dir_url == -1:
@@ -86,7 +96,7 @@ def main():
 
         # Получаю дату из URL-адреса директории последнего обновления:
         egrul_str_date = str_date_from_url(egrul_last_dir_url)
-        if egrip_str_date == -1:
+        if egrul_str_date == -1:
             raise Exception()
 
         # Проверка даты последнего обновления:
@@ -109,12 +119,20 @@ def main():
             with open('config.ini', 'w') as config_file:
                 config.write(config_file)
         else:
-            print('This date is already fixed in the configuration file. No download is required.')
+            logger.info(f'This date is already fixed in the configuration file. No download is required.')
+            # print('This date is already fixed in the configuration file. No download is required.')
+
+        del egrul_parser
 
     except Exception:
         logger.exception(f'Shutdown as a result of an error in the section: "{config_section}"')
 
+    logger.info(f'{"_" * 5}Section processing completed{"_" * 5}')
     # =================================================================================================================
+    """
+    Подключение модуля Касперского для проверки скачанных ZIP-файлов
+    """
+
     return 0
 
 
