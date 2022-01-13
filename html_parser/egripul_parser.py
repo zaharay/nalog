@@ -9,7 +9,7 @@ import logging.config
 logger = logging.getLogger('app_logger')
 
 
-class HTMLParser:
+class EGRIPULParser:
     def __init__(self, p12_file, p12_pwd):
         self.p12_file = p12_file  # путь к файлу сертификата
         self.p12_pwd = p12_pwd  # пароль сертификата
@@ -41,7 +41,7 @@ class HTMLParser:
             logger.exception(f'Error getting the file size: {ex}')
             return -1
 
-    def get_html(self, url, stream=True):  # получаю ответ по URL
+    def get_secure_html(self, url, stream=True):  # получаю ответ по URL
         with Session() as session:
             try:
                 session.mount(
@@ -62,22 +62,32 @@ class HTMLParser:
             return -1
 
     def get_last_item(self, url):  # получаю атрибуты (дату, ссылку) последней записи в списке
-        soup = BeautifulSoup(self.get_html(url).text, 'lxml')
-        if soup == -1 or soup.find('div', class_='alert alert-danger'):
+        page = self.get_secure_html(url)
+        if page == -1:
+            return -1
+
+        try:
+            soup = BeautifulSoup(page.text, 'lxml')
+        except Exception as ex:
+            logger.exception(f'BS4-parser error: {ex}')
+            return -1
+
+        if soup.find('div', class_='alert alert-danger'):
             # print('Error accessing the directory list:', soup.find('div', class_='alert alert-danger').text.strip())
             logger.exception(f'Error accessing the directory list: '
                              f'{soup.find("div", class_="alert alert-danger").text.strip()}')
             return -1
+
         try:
             ul_tag = soup.find('ul', class_='nav nav-pills nav-stacked')  # unordered list
             last_li_a = ul_tag.find_all('li')[-1].find('a')  # последняя запись в списке
             return self._base_url(url) + str(last_li_a.get('href')).strip()
         except Exception as ex:
-            logger.exception(f'Error getting the address of the last directory')
+            logger.exception(f'Error getting the address of the last directory: {ex}')
             return -1
 
     def download_by_url(self, url, file_path, file_size, chunk_size=1024):  # chunk_size=128
-        resp = self.get_html(url)  # stream=True
+        resp = self.get_secure_html(url)  # stream=True
         if resp == -1:
             return -1
         dl, scale = 0, 2  # уже скачано, коэффициент сжатия статус-бара
@@ -97,9 +107,16 @@ class HTMLParser:
         return -1
 
     def get_zip_files(self, url, dnld_dir=''):  # получение ссылок на ZIP-архивы
-        soup = BeautifulSoup(self.get_html(url).text, 'lxml')
-        if soup == -1:
+        page = self.get_secure_html(url)
+        if page == -1:
             return -1
+
+        try:
+            soup = BeautifulSoup(page.text, 'lxml')
+        except Exception as ex:
+            logger.exception(f'BS4-parser error: {ex}')
+            return -1
+
         try:
             ul_tag = soup.find('ul', class_='nav nav-pills nav-stacked')  # unordered list
             num_files = 0
@@ -116,6 +133,7 @@ class HTMLParser:
                         return -1
                     num_files += 1
             logger.info(f'Download of {num_files} file{"s" if num_files > 1 else ""} is completed!')
+            return 0
         except Exception as ex:
-            logger.exception(f'Error getting links to ZIP archives')
+            logger.exception(f'Error getting links to ZIP archives: {ex}')
             return -1

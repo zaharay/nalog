@@ -51,7 +51,7 @@ logger_config = {
         'simple_file': {
             '()': MegaHandler,  # экземпляр MegaHandler
             'level': 'INFO',
-            'filename': 'debug.log',
+            'filename': 'work.log',
             'formatter': 'simple_format'
         },
         'std_console': {
@@ -63,7 +63,7 @@ logger_config = {
         'std_file': {
             '()': MegaHandler,  # экземпляр MegaHandler
             'level': 'DEBUG',
-            'filename': 'debug.log',
+            'filename': 'work.log',
             'formatter': 'std_format'
         }
     },

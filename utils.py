@@ -22,12 +22,35 @@ def date_from_str(str_date):  # дата из строки 'ДД.ММ.ГГГГ'
         return -1
 
 
-def str_date_from_url(url):  # строка с датой из URL
+def str_dates_from_url_zip(url):  # строка с датами из URL zip-файла
+    """
+    Для ЕРСМСП URL вида: https://file.nalog.ru/opendata/7707329152-rsmp/data-10012022-structure-10082021.zip
+    :param url: URL на архив ЕРСМСП
+    :return: список строк вида: ['10.01.2022', '10.08.2021']
+        [0] 10.01.2022 - дату архива
+        [1] 10.08.2021 - дата структуры
+    """
+    try:
+        date_arr = re.findall(r'\d+(?:\d+){2}', url.strip().rsplit('/', 1)[-1])
+        print(date_arr[0])
+        # return re.findall(r'\d+(?:\d+){2}', url.strip().rsplit('/', 1)[-1])  # только цифры и точка после последнего '/'
+    except Exception as ex:
+        logger.exception(f'Date extraction from URL error: {ex}')
+        return -1
+
+
+def str_date_from_url(url):  # строка с датой из URL папки с архивами
+    """
+    Дата из URL для ЕГРИП или ЕГРЮЛ вида: https://ftp.egrul.nalog.ru/?dir=EGRIP_405/31.12.2021
+    :param url: URL на папку с файлами архивов ЕГРИП или ЕГРЮЛ
+    :return: строка вида: '31.12.2021'
+    """
     try:
         return re.search('^[0-9.]+', url.strip().rsplit('/', 1)[-1])[0]  # только цифры и точка после последнего '/'
     except Exception as ex:
         logger.exception(f'Date extraction from URL error: {ex}')
         return -1
+
 
 def get_timedelta(str_start, str_stop):
     """
