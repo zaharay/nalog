@@ -12,8 +12,12 @@ logger = logging.getLogger('app_logger')
 Получение ответа (текста страницы) от URL
 """
 def get_html(url):
+    headers = {
+        'User-Agent': 'YaBrowser/22.1.6.114.00 SA/3 Mobile Safari/537.36 '
+                      'Chrome/50.0.2661.102 Safari/537.36'
+                      }
+    resp = requests.get(url, headers=headers, verify=False)
 
-    resp = requests.get(url)
     if resp.ok:  # print(resp.status_code)  # 200 - Ok (True)
         resp.encoding = 'utf-8'
         # print(*dir(resp), sep='\n') # методы
